@@ -1,0 +1,93 @@
+Bevezetés az ad-hoc parancsokhoz
+
+Párhuzamosság és Shell parancsok
+
+létre kell hoznunk az SSH-ügynököt, hogy emlékezhessen a hitelesítő adatokra:
+$ ssh-agent bash
+$ ssh-add ~ / .ssh / id_rsa
+
+Ha nem akarsz ssh-ügynököt használni, és helyett inkább kulcsot akarsz helyettesíteni az SSH-val, akkor a --ask-pass( -k) paranccsal, de sokkal jobb, ha csak az ssh-agentet használod.
+
+Most futtassa a parancsot egy csoport [altlanta] összes kiszolgálóján, párhuzamosan 10 gépen:
+$ ansible atlanta -a "/sbin/reboot" -f 10
+
+
+/usr/bin/ansible alapértelmezés szerint a felhasználói fiókból fut. Ha nem tetszik ez a viselkedés, adja át a "-u felhasználónevet". Ha a parancsokat más felhasználóként szeretné futtatni, akkor így néz ki:
+$ ansible atlanta -a "/usr/bin/foo" -u username
+
+
+Gyakran nem a felhasználói fiókodból akarsz dolgozni. Ha parancsokat szeretne futtatni a jogosultság változtatásával:
+$ ansible atlanta -a "/usr/bin/foo" -u username --become [--ask-become-pass]
+
+
+Használja --ask-become-pass( -K), ha nem használsz jelszónélküli jogosultság emelést (sudo/ su/ pfexec/ doas/ etc). Ez interaktívan kérni fogja a jelszó használatát. A jelszó nélküli beállítás használata megkönnyíti a dolgok automatizálását, de ez nem szükséges.
+
+Lehetséges, hogy más felhasználóként is használhatjuk, mint a root --become-user:
+$ ansible atlanta -a "/usr/bin/foo" -u username --become-user otheruser [--ask-become-pass]
+
+A shell használata - A parancsok végrehajtása nódokon:
+$ ansible raleigh -m shell -a 'echo $TERM'
+
+Fájl átvitel
+
+Fájl átvitele közvetlenül több szerverre:
+$ ansible atlanta -m copy -a "src=/etc/hosts dest=/tmp/hosts"
+$ ansible webservers -m file -a "dest=/srv/foo/a.txt mode=600"
+$ ansible webservers -m file -a "dest=/srv/foo/b.txt mode=600 owner=mdehaan group=mdehaan"
+
+A file modul könyvtárakat is létrehozhat, amelyek hasonlóak :mkdir -p
+$ ansible webservers -m file -a "dest=/path/to/c mode=755 owner=mdehaan group=mdehaan state=directory"
+
+A könyvtárak törlése (rekurzívan) és a fájlok törlése:
+$ ansible webservers -m file -a "dest=/path/to/c state=absent"
+
+Csomagok kezelése:
+
+Győződjön meg róla, hogy a csomag telepítve van, de ne frissítse:
+$ ansible webservers -m yum -a "name=acme state=present"
+
+Győződjön meg arról, hogy egy csomag telepítve van egy adott verzióra:
+$ ansible webservers -m yum -a "name=acme-1.5 state=present"
+
+Győződjön meg arról, hogy a csomag a legfrissebb verzió:
+$ ansible webservers -m yum -a "name=acme state=latest"
+
+Győződjön meg arról, hogy nincs telepítve egy csomag (távolítsa el ha van):
+$ ansible webservers -m yum -a "name=acme state=absent"
+
+Felhasználók és csoportok
+A "felhasználó" modul lehetővé teszi a meglévő felhasználói fiókok egyszerű létrehozását és manipulálását, valamint a meglévő felhasználói fiókok eltávolítását:
+$ ansible all -m user -a "name=foo password=<crypted password here>"
+
+$ ansible all -m user -a "name=foo state=absent"
+
+
+Telepítés forrásból
+Telepítse webappját egyenesen a git-ból:
+$ ansible webservers -m git -a "repo=https://foo.example.org/repo.git dest=/srv/myapp version=HEAD"
+
+
+
+Szolgáltatások kezelése
+Győződjön meg róla, hogy minden kiszolgálón elindul egy szolgáltatás:
+$ ansible webservers -m service -a "name=httpd state=started"
+
+Alternatív megoldásként indítsa újra a szolgáltatást minden webszerveren:
+$ ansible webservers -m service -a "name=httpd state=restarted"
+
+A szolgáltatás leállítása:
+$ ansible webservers -m service -a "name=httpd state=stopped"
+
+Tények összegyűjtése
+$ ansible all -m setup
+
+
+
+
+
+
+
+
+
+
+
